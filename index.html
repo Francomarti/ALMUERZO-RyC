@@ -1,5 +1,6 @@
 <title>Almuerzo RyC</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@700;800&family=DM+Sans:wght@400;500;600;700&display=swap">
+<script src="config.js"></script>
 <style id="app-css">/* Layout: una sola columna tipo lista de pedido; una tarjeta por día, barra de envío fija abajo. */
 :root{
   --bg:#f3f6f2; --surface:#ffffff; --ink:#15211b; --muted:#5d6b63; --line:#d9e2db;
@@ -67,9 +68,14 @@ textarea{width:100%;min-height:150px;font:inherit;font-size:14px;color:var(--ink
 .err{color:var(--warn);font-weight:600;margin:0}
 .row{display:flex;gap:8px;flex-wrap:wrap}
 @media (prefers-reduced-motion:no-preference){.opt,.chip{transition:border-color .15s,background .15s}}
+
+.inp{width:100%;font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1.5px solid var(--line);border-radius:10px;padding:12px;min-height:48px}
+label.day{cursor:text}
+.chk{display:flex;align-items:center;gap:8px;font-size:14px;min-height:36px}
+.chk input{width:20px;height:20px;accent-color:var(--accent)}
 </style>
 <div id="app"></div>
-<script id="menu-data" type="application/json">{"title":"septiembre del 28 al 2/10","phone":"1151551483","salad":"pechuga grillada o atún natural, palta, queso , mix de verdes, tomates cherrys, zanahoria, repollo, crutones,mix de semillas + dip de vinagreta de mostaza y aceto","days":[{"day":"Lunes","opts":[{"icon":"🔹","text":"Bife angosto a la plancha, dip de pesto de tomate + cremoso de papas"},{"icon":"🔸","text":"Tortilla de espinaca, brócoli y queso + ensalada de verdes, lentejas, cherrys y aderezo"}],"salad":true},{"day":"Martes","opts":[{"icon":"🔹","text":"Pechuguitas grilladas c/salsa de humita norteña + arroz cremoso de calabaza y parmesano"},{"icon":"🔸","text":"Croquetas de acelga, dip de alioli de rúcula + mix de verdes, zanahoria, tomate y vinagreta"}],"salad":true},{"day":"Miércoles","opts":[{"icon":"🔹","text":"Pastel gratinado de batatas y bondiola braseada"},{"icon":"🔸","text":"Pasta integral con crema de puerros y queso azul"}],"salad":true},{"day":"Jueves","opts":[{"icon":"🔹","text":"Tarta \"Salteña\" de carne cortada a cuchillo y queso + ensalada de verdes, huevo duro, cherrys y vinagreta cítrica"},{"icon":"🔸","text":"Wok de arroz , vegetales, huevo a la plancha, salsa de soja, semillas de sésamo"}],"salad":true},{"day":"Viernes","opts":[{"icon":"🔹","text":"milanesa de pechuga a la \"Fugazetta\" (queso, cebolla caramel) + ensalada de papa y huevo c/mayo casera"},{"icon":"🔸","text":"Omelette \"Capresse\" (cherrys confitados, queso y albahaca) + ensalada de verdes, arroz integral, zanahoria y aderezo"}],"salad":true}],"publishedAt":1790785566951}</script>
+<script id="menu-data" type="application/json">{"title":"septiembre del 28 al 2/10","phone":"1151551483","salad":"pechuga grillada o atún natural, palta, queso , mix de verdes, tomates cherrys, zanahoria, repollo, crutones,mix de semillas + dip de vinagreta de mostaza y aceto","days":[{"day":"Lunes","opts":[{"icon":"🔹","text":"Bife angosto a la plancha, dip de pesto de tomate + cremoso de papas"},{"icon":"🔸","text":"Tortilla de espinaca, brócoli y queso + ensalada de verdes, lentejas, cherrys y aderezo"}],"salad":true},{"day":"Martes","opts":[{"icon":"🔹","text":"Pechuguitas grilladas c/salsa de humita norteña + arroz cremoso de calabaza y parmesano"},{"icon":"🔸","text":"Croquetas de acelga, dip de alioli de rúcula + mix de verdes, zanahoria, tomate y vinagreta"}],"salad":true},{"day":"Miércoles","opts":[{"icon":"🔹","text":"Pastel gratinado de batatas y bondiola braseada"},{"icon":"🔸","text":"Pasta integral con crema de puerros y queso azul"}],"salad":true},{"day":"Jueves","opts":[{"icon":"🔹","text":"Tarta \"Salteña\" de carne cortada a cuchillo y queso + ensalada de verdes, huevo duro, cherrys y vinagreta cítrica"},{"icon":"🔸","text":"Wok de arroz , vegetales, huevo a la plancha, salsa de soja, semillas de sésamo"}],"salad":true},{"day":"Viernes","opts":[{"icon":"🔹","text":"milanesa de pechuga a la \"Fugazetta\" (queso, cebolla caramel) + ensalada de papa y huevo c/mayo casera"},{"icon":"🔸","text":"Omelette \"Capresse\" (cherrys confitados, queso y albahaca) + ensalada de verdes, arroz integral, zanahoria y aderezo"}],"salad":true}],"publishedAt":1790786012769}</script>
 <script id="app-js">function parseMenu(raw){
   var DAYS=['Lunes','Martes','Miércoles','Jueves','Viernes'];
   function norm(s){return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');}
@@ -105,72 +111,113 @@ textarea{width:100%;min-height:150px;font:inherit;font-size:14px;color:var(--ink
   var esc=function(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});};
   var LS={get:function(k){try{return localStorage.getItem(k);}catch(e){return null;}},set:function(k,v){try{localStorage.setItem(k,v);}catch(e){}}};
   var embedded=JSON.parse($('#menu-data').textContent);
+  var API=(window.RYC_API||'').trim();
   var ADMIN=/[?&]cargar\b/.test(location.search);
   var PROT={pollo:'con pollo',atun:'con atún',huevo:'con huevo'};
   var PLABEL={pollo:'Pollo',atun:'Atún',huevo:'Huevo'};
   var dayIdx=['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'][new Date().getDay()];
-  var MENU=embedded,key='',sel={},pos=-1,draft=null,link='',status='',sample=true;
+  var MENU=embedded,key='',sel={},pos=-1,draft=null,link='',status='',sample=!!API||true;
+  var loading=!!API,name=LS.get('ryc-name')||'',sending=false,sentSig=null;
+  var clave=LS.get('ryc-clave')||'',cur=null,orders=null,showNames=true,adminMsg='',adminErr='';
 
+  /* ---------- API ---------- */
+  function apiGet(p){return fetch(API+'?'+new URLSearchParams(p)).then(function(r){return r.json();});}
+  function apiPost(b){return fetch(API,{method:'POST',body:JSON.stringify(b)}).then(function(r){return r.json();});}
+
+  /* ---------- link mode (sin servidor) ---------- */
   function b64e(u8){var s='';for(var i=0;i<u8.length;i++)s+=String.fromCharCode(u8[i]);return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
   function b64d(t){t=t.replace(/-/g,'+').replace(/_/g,'/');while(t.length%4)t+='=';var s=atob(t),u=new Uint8Array(s.length);for(var i=0;i<s.length;i++)u[i]=s.charCodeAt(i);return u;}
   function pipe(u8,S){var st=new S('deflate-raw');var w=st.writable.getWriter();w.write(u8);w.close();return new Response(st.readable).arrayBuffer().then(function(b){return new Uint8Array(b);});}
-  function encodeMenu(m){
-    var u8=new TextEncoder().encode(JSON.stringify({t:m.title,s:m.salad,p:m.phone,d:m.days}));
-    if(typeof CompressionStream==='undefined')return Promise.resolve('r'+b64e(u8));
-    return pipe(u8,CompressionStream).then(function(c){return 'z'+b64e(c);});
-  }
-  function decodeMenu(tok){
-    var u8=b64d(tok.slice(1));
-    var get=tok.charAt(0)==='z'?pipe(u8,DecompressionStream):Promise.resolve(u8);
-    return get.then(function(b){var o=JSON.parse(new TextDecoder().decode(b));return {title:o.t,salad:o.s,phone:o.p,days:o.d};});
-  }
-  function setMenu(m){
-    MENU=m;key='ryc-sel:'+m.title;sel={};
-    try{sel=JSON.parse(LS.get(key)||'{}')||{};}catch(e){sel={};}
-    pos=m.days.map(function(d){return d.day;}).indexOf(dayIdx);
-  }
+  function encodeMenu(m){var u8=new TextEncoder().encode(JSON.stringify({t:m.title,s:m.salad,p:m.phone,d:m.days}));if(typeof CompressionStream==='undefined')return Promise.resolve('r'+b64e(u8));return pipe(u8,CompressionStream).then(function(c){return 'z'+b64e(c);});}
+  function decodeMenu(tok){var u8=b64d(tok.slice(1));var get=tok.charAt(0)==='z'?pipe(u8,DecompressionStream):Promise.resolve(u8);return get.then(function(b){var o=JSON.parse(new TextDecoder().decode(b));return {title:o.t,salad:o.s,phone:o.p,days:o.d};});}
+
+  function setMenu(m){MENU=m;key='ryc-sel:'+m.title;sel={};try{sel=JSON.parse(LS.get(key)||'{}')||{};}catch(e){sel={};}sentSig=LS.get('ryc-sent:'+m.title);pos=m.days.map(function(d){return d.day;}).indexOf(dayIdx);}
   function save(){LS.set(key,JSON.stringify(sel));}
-  function lineFor(d){
-    var s=sel[d.day];if(!s)return '';
-    if(s.k==='salad')return '🥗 Ensalada de la semana '+PROT[s.p||'pollo'];
-    var o=d.opts[s.k];return o?o.icon+' '+o.text:'';
-  }
+  function lineFor(d){var s=sel[d.day];if(!s)return '';if(s.k==='salad')return '🥗 Ensalada de la semana '+PROT[s.p||'pollo'];var o=d.opts[s.k];return o?o.icon+' '+o.text:'';}
   function message(){return MENU.days.filter(function(d){return lineFor(d);}).map(function(d){return d.day+'\n'+lineFor(d);}).join('\n\n');}
   function count(){return MENU.days.filter(function(d){return lineFor(d);}).length;}
+  function sig(){return name.trim()+'|'+JSON.stringify(MENU.days.map(function(d){return lineFor(d);}));}
 
+  /* ---------- resumen para María ---------- */
+  function summary(){
+    var by={};
+    (orders||[]).forEach(function(o){var d=by[o.day]=by[o.day]||{};(d[o.line]=d[o.line]||[]).push(o.name);});
+    return by;
+  }
+  function people(){var s={};(orders||[]).forEach(function(o){s[String(o.name).toLowerCase()]=1;});return Object.keys(s).length;}
+  function kitchenText(withNames){
+    var by=summary(),out=[];
+    (cur?cur.days:[]).forEach(function(d){
+      var g=by[d.day];if(!g)return;
+      var lines=Object.keys(g).sort(function(a,b){return g[b].length-g[a].length;}).map(function(l){return g[l].length+' × '+l+(withNames?' ('+g[l].join(', ')+')':'');});
+      out.push(d.day+'\n'+lines.join('\n'));
+    });
+    return out.join('\n\n');
+  }
+
+  /* ---------- María ---------- */
   function renderAdmin(){
-    var h='<div class="wrap"><header><span class="kicker">Almuerzo RyC · Solo para quien carga el menú</span><h1>Cargar el menú de la semana</h1></header>';
-    h+='<section class="day"><p class="hint">1. Pegá el mensaje del menú semanal, tal cual llega.</p><textarea id="paste" placeholder="🥘 Menú de octubre del 5 al 9 🥘&#10;&#10;Lunes&#10;🔹 ...&#10;🔸 ...">'+esc(draft?draft.raw:'')+'</textarea><div class="row"><button class="btn main" data-a="read">Leer menú</button></div>';
+    var h='<div class="wrap"><header><span class="kicker">Almuerzo RyC · Solo para quien carga el menú</span><h1>Menú y pedidos</h1></header>';
+    if(API){
+      h+='<section class="day"><h2 class="dayname">Clave</h2><input id="clave" class="inp" type="password" autocomplete="off" placeholder="Clave de administración" value="'+esc(clave)+'"></section>';
+    }
+    h+='<section class="day"><h2 class="dayname">1. Cargar el menú</h2><p class="hint">Pegá el mensaje del menú semanal, tal cual llega.</p><textarea id="paste" placeholder="🥘 Menú de octubre del 5 al 9 🥘&#10;&#10;Lunes&#10;🔹 ...&#10;🔸 ...">'+esc(draft?draft.raw:'')+'</textarea><div class="row"><button class="btn main" data-a="read">Leer menú</button></div>';
     if(draft&&draft.err)h+='<p class="err">'+esc(draft.err)+'</p>';
     if(draft&&draft.menu){
       var nopt=draft.menu.days.reduce(function(a,d){return a+d.opts.length;},0);
       h+='<p class="ok">Menú de '+esc(draft.menu.title)+': '+draft.menu.days.length+' días, '+nopt+' platos.</p>';
-      h+='<p class="hint">2. Copiá el link y mandalo al grupo. Cada uno lo abre y elige.</p>';
-      if(link){
-        h+='<textarea id="linktxt" readonly style="min-height:90px">'+esc(link)+'</textarea><div class="row"><button class="btn main" data-a="copylink">Copiar link</button><a class="btn sec" target="_blank" rel="noopener" href="https://wa.me/?text='+encodeURIComponent('Menú de '+draft.menu.title+'. Elegí tu almuerzo acá:\n'+link)+'">Mandar por WhatsApp</a><a class="btn sec" target="_blank" rel="noopener" href="'+esc(link)+'">Probar el link</a></div>';
-      }else h+='<p class="hint">Preparando el link…</p>';
+      if(API){h+='<div class="row"><button class="btn main" data-a="publish">Publicar para todos</button></div><p class="hint">Todos ven este menú en el mismo link de siempre y se borran sus elecciones anteriores.</p>';}
+      else if(link){h+='<textarea id="linktxt" readonly style="min-height:90px">'+esc(link)+'</textarea><div class="row"><button class="btn main" data-a="copylink">Copiar link</button><a class="btn sec" target="_blank" rel="noopener" href="https://wa.me/?text='+encodeURIComponent('Menú de '+draft.menu.title+'. Elegí tu almuerzo acá:\n'+link)+'">Mandar por WhatsApp</a></div>';}
     }
-    if(status)h+='<p class="ok">'+esc(status)+'</p>';
-    h+='</section></div>';
-    var keep=$('#paste')?$('#paste').value:null;
+    if(adminMsg)h+='<p class="ok">'+esc(adminMsg)+'</p>';
+    if(adminErr)h+='<p class="err">'+esc(adminErr)+'</p>';
+    h+='</section>';
+    if(API){
+      h+='<section class="day"><div class="dayhead"><h2 class="dayname">2. Pedidos recibidos</h2><button class="chip" data-a="refresh">Actualizar</button></div>';
+      if(!cur)h+='<p class="hint">Todavía no hay menú publicado.</p>';
+      else{
+        h+='<p class="hint">Menú de '+esc(cur.title)+(orders?' · '+people()+' '+(people()===1?'persona pidió':'personas pidieron'):'')+'</p>';
+        if(orders===null)h+='<p class="hint">'+(clave?'Cargando pedidos…':'Ingresá la clave para ver los pedidos.')+'</p>';
+        else if(!orders.length)h+='<p class="hint">Todavía no llegó ningún pedido.</p>';
+        else{
+          h+='<label class="chk"><input type="checkbox" id="names"'+(showNames?' checked':'')+'> Con nombres</label>';
+          h+='<pre class="msg" id="kitchen">'+esc(kitchenText(showNames))+'</pre><div class="row"><button class="btn main" data-a="copykitchen">Copiar para la cocina</button><a class="btn sec" target="_blank" rel="noopener" href="https://wa.me/?text='+encodeURIComponent('Pedido semana del '+cur.title+'\n\n'+kitchenText(showNames))+'">Mandar por WhatsApp</a></div>';
+        }
+      }
+      h+='</section>';
+    }
+    h+='</div>';
+    var pv=$('#paste')?$('#paste').value:null;
     $('#app').innerHTML=h;
-    if(keep!==null&&!draft)$('#paste').value=keep;
+    if(pv!==null)$('#paste').value=pv;
+  }
+  function loadOrders(silent){
+    if(!API||!cur||!clave)return;
+    if(!silent){orders=null;render();}
+    apiGet({action:'orders',week:cur.title,clave:clave}).then(function(r){
+      if(r.ok){orders=r.orders;adminErr='';}else{orders=null;adminErr=r.error==='clave'?'La clave no es correcta.':'No se pudieron leer los pedidos.';}
+      render();
+    }).catch(function(){orders=null;adminErr='No se pudo conectar con el servidor de pedidos.';render();});
+  }
+  function loadAdmin(){
+    if(!API)return;
+    apiGet({action:'menu'}).then(function(r){cur=r.menu||null;render();loadOrders();}).catch(function(){adminErr='No se pudo conectar con el servidor de pedidos.';render();});
   }
 
+  /* ---------- empleados ---------- */
   function render(){
     if(ADMIN)return renderAdmin();
     var h='<div class="wrap"><header><span class="kicker">Almuerzo RyC · Diego T. Cocina</span><h1>Elegí tu menú</h1><span class="week">Menú de '+esc(MENU.title)+'</span></header>';
-    if(sample)h+='<p class="hint">Este es el menú de ejemplo. Para pedir, abrí el link que se manda al grupo cada lunes.</p>';
+    if(loading){$('#app').innerHTML=h+'<p class="hint">Cargando el menú…</p></div>';return;}
+    if(sample)h+='<p class="hint">Menú de ejemplo. Todavía no se cargó el menú de esta semana.</p>';
+    if(API)h+='<label class="day"><span class="dayname">Tu nombre</span><input id="nm" class="inp" autocomplete="name" placeholder="Nombre y apellido" value="'+esc(name)+'"></label>';
     h+='<div class="tools"><button class="chip" data-a="allsalad">Ensalada toda la semana</button><button class="link" data-a="clear">Borrar todo</button></div>';
     MENU.days.forEach(function(d,i){
       var cls='day'+(i===pos?' today':'')+(pos>=0&&i<pos?' past':'');
       h+='<section class="'+cls+'"><div class="dayhead"><h2 class="dayname">'+d.day+'</h2>'+(i===pos?'<span class="tag">Hoy</span>':(pos>=0&&i<pos?'<span class="tag mut">Ya pasó</span>':''))+'</div>';
       if(d.note)h+='<p class="note">'+esc(d.note)+'</p>';
       var s=sel[d.day];
-      d.opts.forEach(function(o,k){
-        var on=s&&s.k===k;
-        h+='<button class="opt" data-a="pick" data-d="'+d.day+'" data-k="'+k+'" aria-pressed="'+!!on+'"><span class="dot '+(o.icon==='🔹'?'o1':'o2')+'"></span><span class="txt">'+esc(o.text)+'</span><span class="tick">✓</span></button>';
-      });
+      d.opts.forEach(function(o,k){var on=s&&s.k===k;h+='<button class="opt" data-a="pick" data-d="'+d.day+'" data-k="'+k+'" aria-pressed="'+!!on+'"><span class="dot '+(o.icon==='🔹'?'o1':'o2')+'"></span><span class="txt">'+esc(o.text)+'</span><span class="tick">✓</span></button>';});
       if(d.salad){
         var on2=s&&s.k==='salad';
         h+='<button class="opt" data-a="pick" data-d="'+d.day+'" data-k="salad" aria-pressed="'+!!on2+'"><span class="dot sal"></span><span class="txt"><b>Ensalada de la semana</b>'+esc(MENU.salad||'')+'</span><span class="tick">✓</span></button>';
@@ -181,37 +228,83 @@ textarea{width:100%;min-height:150px;font:inherit;font-size:14px;color:var(--ink
     });
     var n=count(),msg=message();
     if(status)h+='<p class="'+(/^No /.test(status)?'err':'ok')+'">'+esc(status)+'</p>';
-    h+='<details><summary>Ver mensaje</summary><div class="in"><pre class="msg" id="msgtxt">'+(msg?esc(msg):'Todavía no elegiste nada.')+'</pre></div></details></div>';
-    h+='<div class="bar"><div class="barin"><div class="count"><b>'+(n?n+(n===1?' día':' días'):'Sin pedido')+'</b>'+(n?'elegidos':'Tocá un plato')+'</div><button class="btn sec" data-a="copy"'+(n?'':' aria-disabled="true"')+'>Copiar</button><a class="btn main" id="wa" target="_blank" rel="noopener" '+(n?'href="https://wa.me/?text='+encodeURIComponent(msg)+'"':'aria-disabled="true"')+'>Enviar a WhatsApp</a></div></div>';
+    if(!API)h+='<details><summary>Ver mensaje</summary><div class="in"><pre class="msg" id="msgtxt">'+(msg?esc(msg):'Todavía no elegiste nada.')+'</pre></div></details>';
+    h+='</div><div class="bar"><div class="barin"><div class="count"><b>'+(n?n+(n===1?' día':' días'):'Sin pedido')+'</b>'+(n?'elegidos':'Tocá un plato')+'</div>';
+    if(API){
+      var done=sentSig&&sentSig===sig();
+      h+='<button class="btn main" data-a="send"'+((!n||sending||done||sample)?' aria-disabled="true"':'')+'>'+(sending?'Enviando…':(done?'Pedido enviado ✓':'Enviar pedido'))+'</button>';
+    }else{
+      h+='<button class="btn sec" data-a="copy"'+(n?'':' aria-disabled="true"')+'>Copiar</button><a class="btn main" target="_blank" rel="noopener" '+(n?'href="https://wa.me/?text='+encodeURIComponent(msg)+'"':'aria-disabled="true"')+'>Enviar a WhatsApp</a>';
+    }
+    h+='</div></div>';
     $('#app').innerHTML=h;
   }
   function flash(t){status=t;render();}
   function copy(text,okMsg,sourceSel){
-    var fb=function(){var el=$(sourceSel);if(el){var r=document.createRange();r.selectNodeContents(el);var s=window.getSelection();s.removeAllRanges();s.addRange(r);if(el.select)el.select();}flash('No se pudo copiar solo. Tocá el texto y copialo.');};
-    try{navigator.clipboard.writeText(text).then(function(){flash(okMsg);},fb);}catch(e){fb();}
+    var fb=function(){var el=$(sourceSel);if(el){var r=document.createRange();r.selectNodeContents(el);var s=window.getSelection();s.removeAllRanges();s.addRange(r);if(el.select)el.select();}var m='No se pudo copiar solo. Tocá el texto y copialo.';if(ADMIN){adminMsg='';adminErr=m;}else status=m;render();};
+    var ok=function(){if(ADMIN){adminErr='';adminMsg=okMsg;render();}else flash(okMsg);};
+    try{navigator.clipboard.writeText(text).then(ok,fb);}catch(e){fb();}
   }
+  function sendOrder(){
+    name=name.trim();
+    if(!name){flash('No pusiste tu nombre. Escribilo arriba para poder enviar.');return;}
+    var items=MENU.days.map(function(d){return {day:d.day,line:lineFor(d)};}).filter(function(i){return i.line;});
+    if(!items.length)return;
+    sending=true;status='';render();
+    var mine=sig();
+    apiPost({action:'order',week:MENU.title,name:name,items:items}).then(function(r){
+      sending=false;
+      if(r&&r.ok){LS.set('ryc-name',name);sentSig=mine;LS.set('ryc-sent:'+MENU.title,mine);status='Listo, tu pedido llegó. Si cambiás algo, volvé a enviarlo.';}
+      else status='No se pudo enviar el pedido. Probá de nuevo.';
+      render();
+    }).catch(function(){sending=false;status='No se pudo enviar el pedido. Revisá tu conexión y probá de nuevo.';render();});
+  }
+  document.addEventListener('input',function(e){
+    if(e.target.id==='nm'){name=e.target.value;}
+    if(e.target.id==='clave'){clave=e.target.value.trim();LS.set('ryc-clave',clave);}
+  });
+  document.addEventListener('change',function(e){
+    if(e.target.id==='names'){showNames=e.target.checked;render();}
+    if(e.target.id==='clave'){loadOrders(true);}
+  });
   document.addEventListener('click',function(e){
-    var b=e.target.closest('[data-a]');if(!b)return;
+    var b=e.target.closest('[data-a]');if(!b||b.getAttribute('aria-disabled')==='true')return;
     var a=b.dataset.a,d=b.dataset.d;
-    if(a==='pick'){var k=b.dataset.k==='salad'?'salad':+b.dataset.k;if(sel[d]&&sel[d].k===k)delete sel[d];else sel[d]={k:k,p:(sel[d]&&sel[d].p)||'pollo'};save();render();}
-    else if(a==='prot'){sel[d]={k:'salad',p:b.dataset.p};save();render();}
-    else if(a==='none'){delete sel[d];save();render();}
-    else if(a==='clear'){sel={};save();render();}
-    else if(a==='allsalad'){var p=null;MENU.days.forEach(function(x){if(x.salad){p=(sel[x.day]&&sel[x.day].p)||p||'pollo';sel[x.day]={k:'salad',p:p};}});save();render();}
+    if(a==='pick'){var k=b.dataset.k==='salad'?'salad':+b.dataset.k;if(sel[d]&&sel[d].k===k)delete sel[d];else sel[d]={k:k,p:(sel[d]&&sel[d].p)||'pollo'};save();status='';render();}
+    else if(a==='prot'){sel[d]={k:'salad',p:b.dataset.p};save();status='';render();}
+    else if(a==='none'){delete sel[d];save();status='';render();}
+    else if(a==='clear'){sel={};save();status='';render();}
+    else if(a==='allsalad'){var p=null;MENU.days.forEach(function(x){if(x.salad){p=(sel[x.day]&&sel[x.day].p)||p||'pollo';sel[x.day]={k:'salad',p:p};}});save();status='';render();}
+    else if(a==='send'){sendOrder();}
     else if(a==='copy'){var msg=message();if(msg)copy(msg,'Mensaje copiado. Pegalo en el grupo.','#msgtxt');}
     else if(a==='copylink'){copy(link,'Link copiado. Pegalo en el grupo.','#linktxt');}
+    else if(a==='copykitchen'){copy(kitchenText(showNames),'Copiado. Pegalo donde le mandás el pedido a la cocina.','#kitchen');}
+    else if(a==='refresh'){adminMsg='';loadAdmin();}
     else if(a==='read'){
-      var raw=$('#paste').value,m=parseMenu(raw);link='';status='';
+      var raw=$('#paste').value,m=parseMenu(raw);link='';adminMsg='';adminErr='';
       if(m.days.some(function(x){return x.opts.length||x.salad;})){
         draft={raw:raw,menu:m};render();
-        encodeMenu(m).then(function(tok){link=location.origin+location.pathname+'#m='+tok;render();});
+        if(!API)encodeMenu(m).then(function(tok){link=location.origin+location.pathname+'#m='+tok;render();});
       }else{draft={raw:raw,err:'No encontré días con platos. Pegá el mensaje completo, con Lunes, Martes, etc.'};render();}
+    }else if(a==='publish'){
+      if(!clave){adminErr='Ingresá la clave de administración arriba.';render();return;}
+      adminMsg='Publicando…';adminErr='';render();
+      apiPost({action:'menu',clave:clave,menu:draft.menu}).then(function(r){
+        if(r&&r.ok){adminMsg='Menú publicado. Ya lo ven todos en el link de siempre.';cur=draft.menu;orders=[];draft=null;render();loadOrders();}
+        else{adminMsg='';adminErr=r&&r.error==='clave'?'La clave no es correcta.':'No se pudo publicar el menú.';render();}
+      }).catch(function(){adminMsg='';adminErr='No se pudo conectar con el servidor de pedidos.';render();});
     }
   });
   function load(){
+    if(ADMIN){setMenu(embedded);render();loadAdmin();return;}
     var m=/#m=([zr][A-Za-z0-9_-]+)/.exec(location.hash);
-    if(m&&!ADMIN){decodeMenu(m[1]).then(function(mm){if(mm&&mm.days){sample=false;setMenu(mm);}render();}).catch(function(){status='No se pudo leer el link del menú. Pedile el link de nuevo a quien lo carga.';render();});}
-    else{setMenu(embedded);render();}
+    if(m){decodeMenu(m[1]).then(function(mm){if(mm&&mm.days){sample=false;setMenu(mm);}loading=false;render();}).catch(function(){setMenu(embedded);loading=false;status='No se pudo leer el link del menú. Pedile el link de nuevo a quien lo carga.';render();});return;}
+    if(API){
+      apiGet({action:'menu'}).then(function(r){if(r&&r.menu&&r.menu.days){sample=false;setMenu(r.menu);}else setMenu(embedded);loading=false;render();})
+      .catch(function(){setMenu(embedded);loading=false;status='No se pudo cargar el menú. Revisá tu conexión y recargá.';render();});
+      return;
+    }
+    setMenu(embedded);loading=false;render();
   }
   window.addEventListener('hashchange',function(){location.reload();});
   setMenu(embedded);render();load();
