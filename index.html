@@ -73,9 +73,18 @@ textarea{width:100%;min-height:150px;font:inherit;font-size:14px;color:var(--ink
 label.day{cursor:text}
 .chk{display:flex;align-items:center;gap:8px;font-size:14px;min-height:36px}
 .chk input{width:20px;height:20px;accent-color:var(--accent)}
+
+.tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+.tbl{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+.tbl th,.tbl td{padding:8px 10px;text-align:center;white-space:nowrap;border-bottom:1px solid var(--line)}
+.tbl thead th{background:var(--bg);font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+.tbl tbody th{text-align:left;font-weight:600;position:sticky;left:0;background:var(--surface)}
+.tbl tfoot th,.tbl tfoot td{font-weight:700;border-bottom:0;background:var(--bg)}
+.tbl tfoot th{text-align:left;position:sticky;left:0}
+.nil{color:var(--muted)}
 </style>
 <div id="app"></div>
-<script id="menu-data" type="application/json">{"title":"septiembre del 28 al 2/10","phone":"1151551483","salad":"pechuga grillada o atún natural, palta, queso , mix de verdes, tomates cherrys, zanahoria, repollo, crutones,mix de semillas + dip de vinagreta de mostaza y aceto","days":[{"day":"Lunes","opts":[{"icon":"🔹","text":"Bife angosto a la plancha, dip de pesto de tomate + cremoso de papas"},{"icon":"🔸","text":"Tortilla de espinaca, brócoli y queso + ensalada de verdes, lentejas, cherrys y aderezo"}],"salad":true},{"day":"Martes","opts":[{"icon":"🔹","text":"Pechuguitas grilladas c/salsa de humita norteña + arroz cremoso de calabaza y parmesano"},{"icon":"🔸","text":"Croquetas de acelga, dip de alioli de rúcula + mix de verdes, zanahoria, tomate y vinagreta"}],"salad":true},{"day":"Miércoles","opts":[{"icon":"🔹","text":"Pastel gratinado de batatas y bondiola braseada"},{"icon":"🔸","text":"Pasta integral con crema de puerros y queso azul"}],"salad":true},{"day":"Jueves","opts":[{"icon":"🔹","text":"Tarta \"Salteña\" de carne cortada a cuchillo y queso + ensalada de verdes, huevo duro, cherrys y vinagreta cítrica"},{"icon":"🔸","text":"Wok de arroz , vegetales, huevo a la plancha, salsa de soja, semillas de sésamo"}],"salad":true},{"day":"Viernes","opts":[{"icon":"🔹","text":"milanesa de pechuga a la \"Fugazetta\" (queso, cebolla caramel) + ensalada de papa y huevo c/mayo casera"},{"icon":"🔸","text":"Omelette \"Capresse\" (cherrys confitados, queso y albahaca) + ensalada de verdes, arroz integral, zanahoria y aderezo"}],"salad":true}],"publishedAt":1790786012769}</script>
+<script id="menu-data" type="application/json">{"title":"septiembre del 28 al 2/10","phone":"1151551483","salad":"pechuga grillada o atún natural, palta, queso , mix de verdes, tomates cherrys, zanahoria, repollo, crutones,mix de semillas + dip de vinagreta de mostaza y aceto","days":[{"day":"Lunes","opts":[{"icon":"🔹","text":"Bife angosto a la plancha, dip de pesto de tomate + cremoso de papas"},{"icon":"🔸","text":"Tortilla de espinaca, brócoli y queso + ensalada de verdes, lentejas, cherrys y aderezo"}],"salad":true},{"day":"Martes","opts":[{"icon":"🔹","text":"Pechuguitas grilladas c/salsa de humita norteña + arroz cremoso de calabaza y parmesano"},{"icon":"🔸","text":"Croquetas de acelga, dip de alioli de rúcula + mix de verdes, zanahoria, tomate y vinagreta"}],"salad":true},{"day":"Miércoles","opts":[{"icon":"🔹","text":"Pastel gratinado de batatas y bondiola braseada"},{"icon":"🔸","text":"Pasta integral con crema de puerros y queso azul"}],"salad":true},{"day":"Jueves","opts":[{"icon":"🔹","text":"Tarta \"Salteña\" de carne cortada a cuchillo y queso + ensalada de verdes, huevo duro, cherrys y vinagreta cítrica"},{"icon":"🔸","text":"Wok de arroz , vegetales, huevo a la plancha, salsa de soja, semillas de sésamo"}],"salad":true},{"day":"Viernes","opts":[{"icon":"🔹","text":"milanesa de pechuga a la \"Fugazetta\" (queso, cebolla caramel) + ensalada de papa y huevo c/mayo casera"},{"icon":"🔸","text":"Omelette \"Capresse\" (cherrys confitados, queso y albahaca) + ensalada de verdes, arroz integral, zanahoria y aderezo"}],"salad":true}],"publishedAt":1790787643151}</script>
 <script id="app-js">function parseMenu(raw){
   var DAYS=['Lunes','Martes','Miércoles','Jueves','Viernes'];
   function norm(s){return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');}
@@ -145,14 +154,55 @@ label.day{cursor:text}
     return by;
   }
   function people(){var s={};(orders||[]).forEach(function(o){s[String(o.name).toLowerCase()]=1;});return Object.keys(s).length;}
-  function kitchenText(withNames){
+  var daySel=null;
+  function kitchenText(withNames,only){
     var by=summary(),out=[];
     (cur?cur.days:[]).forEach(function(d){
+      if(only&&only!=='all'&&d.day!==only)return;
       var g=by[d.day];if(!g)return;
-      var lines=Object.keys(g).sort(function(a,b){return g[b].length-g[a].length;}).map(function(l){return g[l].length+' × '+l+(withNames?' ('+g[l].join(', ')+')':'');});
-      out.push(d.day+'\n'+lines.join('\n'));
+      var total=0;
+      var lines=Object.keys(g).sort(function(x,y){return g[y].length-g[x].length;}).map(function(l){
+        total+=g[l].length;
+        var nm=g[l].slice().sort(function(p,q){return p.localeCompare(q,'es');});
+        return g[l].length+' × '+l+(withNames?'\n     '+nm.join(' · '):'');
+      });
+      out.push('*'+d.day+'*\n'+lines.join('\n')+'\nTotal: '+total+(total===1?' almuerzo':' almuerzos'));
     });
     return out.join('\n\n');
+  }
+
+  var view='tabla',ABR={Lunes:'Lun',Martes:'Mar','Miércoles':'Mié',Jueves:'Jue',Viernes:'Vie'};
+  function cellOf(line){
+    var ic=line.slice(0,2);
+    if(ic==='🥗'){var m=/con ([^\s]+)/.exec(line);return '🥗'+(m?' '+m[1]:'');}
+    return ic;
+  }
+  function matrix(){
+    var days=(cur?cur.days:[]).map(function(d){return d.day;}),names={},order=[];
+    (orders||[]).forEach(function(o){
+      var k=String(o.name).toLowerCase();
+      if(!names[k]){names[k]={name:o.name,c:{}};order.push(k);}
+      names[k].c[o.day]=cellOf(o.line);
+    });
+    order.sort(function(p,q){return names[p].name.localeCompare(names[q].name,'es');});
+    var rows=order.map(function(k){return names[k];});
+    var tot={};
+    days.forEach(function(d){
+      var t={};rows.forEach(function(r){var c=r.c[d];if(c){var key=c.slice(0,2);t[key]=(t[key]||0)+1;}});
+      tot[d]=['🔹','🔸','🥗'].filter(function(i){return t[i];}).map(function(i){return i+t[i];}).join(' ');
+    });
+    return {days:days,rows:rows,tot:tot};
+  }
+  function wcell(s){var w=0;for(var ch of s){w+=ch.codePointAt(0)>0x2000?2:1;}return w;}
+  function pad(s,n){var w=wcell(s);return s+new Array(Math.max(0,n-w)+1).join(' ');}
+  function matrixText(){
+    var m=matrix(),head=['Nombre'].concat(m.days.map(function(d){return ABR[d]||d;}));
+    var body=m.rows.map(function(r){return [r.name].concat(m.days.map(function(d){return r.c[d]||'-';}));});
+    var foot=['Total'].concat(m.days.map(function(d){return m.tot[d]||'-';}));
+    var all=[head].concat(body,[foot]),wd=head.map(function(_,i){return Math.max.apply(null,all.map(function(r){return wcell(r[i]);}));});
+    var line=function(r){return r.map(function(c,i){return pad(c,wd[i]);}).join(' | ').replace(/\s+$/,'');};
+    var sep=wd.map(function(w){return new Array(w+1).join('-');}).join('-|-');
+    return '```\n'+line(head)+'\n'+sep+'\n'+body.map(line).join('\n')+'\n'+sep+'\n'+line(foot)+'\n```\n🔹 🔸 = opción del menú de ese día · 🥗 = ensalada';
   }
 
   /* ---------- María ---------- */
@@ -180,8 +230,21 @@ label.day{cursor:text}
         if(orders===null)h+='<p class="hint">'+(clave?'Cargando pedidos…':'Ingresá la clave para ver los pedidos.')+'</p>';
         else if(!orders.length)h+='<p class="hint">Todavía no llegó ningún pedido.</p>';
         else{
-          h+='<label class="chk"><input type="checkbox" id="names"'+(showNames?' checked':'')+'> Con nombres</label>';
-          h+='<pre class="msg" id="kitchen">'+esc(kitchenText(showNames))+'</pre><div class="row"><button class="btn main" data-a="copykitchen">Copiar para la cocina</button><a class="btn sec" target="_blank" rel="noopener" href="https://wa.me/?text='+encodeURIComponent('Pedido semana del '+cur.title+'\n\n'+kitchenText(showNames))+'">Mandar por WhatsApp</a></div>';
+          h+='<div class="prot" role="group" aria-label="Vista"><button class="chip" data-a="view" data-d="tabla" aria-pressed="'+(view==='tabla')+'">Tabla</button><button class="chip" data-a="view" data-d="plato" aria-pressed="'+(view==='plato')+'">Por plato</button></div>';
+          if(view==='tabla'){
+            var mx=matrix();
+            h+='<div class="tblwrap"><table class="tbl"><thead><tr><th>Nombre</th>'+mx.days.map(function(d){return '<th>'+(ABR[d]||d)+'</th>';}).join('')+'</tr></thead><tbody>';
+            mx.rows.forEach(function(r){h+='<tr><th>'+esc(r.name)+'</th>'+mx.days.map(function(d){return '<td>'+(r.c[d]?esc(r.c[d]):'<span class="nil">–</span>')+'</td>';}).join('')+'</tr>';});
+            h+='</tbody><tfoot><tr><th>Total</th>'+mx.days.map(function(d){return '<td>'+(mx.tot[d]?esc(mx.tot[d]):'<span class="nil">–</span>')+'</td>';}).join('')+'</tr></tfoot></table></div><p class="hint">🔹 🔸 = opción del menú de ese día · 🥗 = ensalada</p>';
+            h+='<details><summary>Ver texto para copiar</summary><div class="in"><pre class="msg" id="kitchen">'+esc(matrixText())+'</pre></div></details><div class="row"><button class="btn main" data-a="copykitchen">Copiar para la cocina</button><a class="btn sec" target="_blank" rel="noopener" href="https://wa.me/?text='+encodeURIComponent('Pedido · Diego T. Cocina\n'+matrixText())+'">Mandar por WhatsApp</a></div>';
+          }else{
+          var ds=daySel||'all',by2=summary();
+          h+='<div class="prot" role="group" aria-label="Día"><button class="chip" data-a="dayf" data-d="all" aria-pressed="'+(ds==='all')+'">Toda la semana</button>';
+          cur.days.forEach(function(d){if(by2[d.day])h+='<button class="chip" data-a="dayf" data-d="'+d.day+'" aria-pressed="'+(ds===d.day)+'">'+d.day+'</button>';});
+          h+='</div><label class="chk"><input type="checkbox" id="names"'+(showNames?' checked':'')+'> Con nombres</label>';
+          var kt=kitchenText(showNames,ds),head=(ds==='all'?'Pedido de la semana':'Pedido del '+ds)+' · Diego T. Cocina\n\n';
+          h+='<pre class="msg" id="kitchen">'+esc(kt)+'</pre><div class="row"><button class="btn main" data-a="copykitchen">Copiar para la cocina</button><a class="btn sec" target="_blank" rel="noopener" href="https://wa.me/?text='+encodeURIComponent(head+kt)+'">Mandar por WhatsApp</a></div>';
+          }
         }
       }
       h+='</section>';
@@ -195,7 +258,7 @@ label.day{cursor:text}
     if(!API||!cur||!clave)return;
     if(!silent){orders=null;render();}
     apiGet({action:'orders',week:cur.title,clave:clave}).then(function(r){
-      if(r.ok){orders=r.orders;adminErr='';}else{orders=null;adminErr=r.error==='clave'?'La clave no es correcta.':'No se pudieron leer los pedidos.';}
+      if(r.ok){orders=r.orders;adminErr='';if(!daySel){daySel=summary()[dayIdx]?dayIdx:'all';}}else{orders=null;adminErr=r.error==='clave'?'La clave no es correcta.':'No se pudieron leer los pedidos.';}
       render();
     }).catch(function(){orders=null;adminErr='No se pudo conectar con el servidor de pedidos.';render();});
   }
@@ -278,7 +341,9 @@ label.day{cursor:text}
     else if(a==='send'){sendOrder();}
     else if(a==='copy'){var msg=message();if(msg)copy(msg,'Mensaje copiado. Pegalo en el grupo.','#msgtxt');}
     else if(a==='copylink'){copy(link,'Link copiado. Pegalo en el grupo.','#linktxt');}
-    else if(a==='copykitchen'){copy(kitchenText(showNames),'Copiado. Pegalo donde le mandás el pedido a la cocina.','#kitchen');}
+    else if(a==='dayf'){daySel=d;adminMsg='';render();}
+    else if(a==='view'){view=d;adminMsg='';render();}
+    else if(a==='copykitchen'){copy(view==='tabla'?'Pedido · Diego T. Cocina\n'+matrixText():(daySel==='all'||!daySel?'Pedido de la semana':'Pedido del '+daySel)+' · Diego T. Cocina\n\n'+kitchenText(showNames,daySel||'all'),'Copiado. Pegalo donde le mandás el pedido a la cocina.','#kitchen');}
     else if(a==='refresh'){adminMsg='';loadAdmin();}
     else if(a==='read'){
       var raw=$('#paste').value,m=parseMenu(raw);link='';adminMsg='';adminErr='';
